@@ -1,0 +1,21 @@
+[package]
+name = "titan-fitness-stock"
+version = "0.1.0"
+authors = ["Robert Masen <robert.masen@smartthings.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "1", features = ["macros", "time", "rt-multi-thread"]}
+reqwest = {version = "0.11.0", features = ["rustls"]}
+scraper = "0.12"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = {version = "0.4", features = ["serde"]}
+csv = "1"
+structopt = "0.3"
+log = "0.4"
+pretty_env_logger = "0.4"
+structsy = "0.3"
+structsy-derive = "0.3"
