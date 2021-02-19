@@ -10,20 +10,29 @@ use structopt::{clap::AppSettings, StructOpt};
 #[derive(StructOpt, Debug)]
 #[structopt(setting = AppSettings::InferSubcommands)]
 enum Opt {
+    /// Check for new merchandise, storing the item data and timestamp for this check
     Run(RunArgs),
+    /// Lookup all known items in the provided database that have been seen in the last 30 days
     CurrentAsCsv(CsvArgs),
 }
 
 #[derive(StructOpt, Debug)]
 struct RunArgs {
     #[structopt(long = "db", short = "d")]
+    /// The path to a database file. On first run, this will establish
+    /// your database so when it is run again, it can compare the current
+    /// available stock.
     db_path: PathBuf,
 }
 #[derive(StructOpt, Debug)]
 struct CsvArgs {
     #[structopt(long, short)]
+    /// A path to an output file, if not provided csv will be printed
+    /// to stdout
     out: Option<String>,
     #[structopt(long = "db", short = "d")]
+    /// The path to a previously created database file. Execute the `run` command
+    /// to create one
     db_path: PathBuf,
 }
 
