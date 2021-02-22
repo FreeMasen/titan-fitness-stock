@@ -68,7 +68,6 @@ pub async fn daily_new_item_check<P: AsRef<Path>>(db_path: P) -> Result<()> {
     let text = request_html().await?;
     
     let new_values = html_to_items(&text);
-    println!("total items count: {}", new_values.len());
     let database = open_db(&db_path)?;
     let end_dt = Utc::now();
     let now = end_dt.timestamp() as u64;
