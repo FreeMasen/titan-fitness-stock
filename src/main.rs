@@ -23,6 +23,10 @@ struct RunArgs {
     /// your database so when it is run again, it can compare the current
     /// available stock.
     db_path: PathBuf,
+    #[structopt(long)]
+    /// The path to a directory you would like time stamped html written into
+    /// when new items are found
+    debug_html: Option<PathBuf>,
 }
 #[derive(StructOpt, Debug)]
 struct CsvArgs {
@@ -52,7 +56,7 @@ async fn main() {
 }
 
 async fn daily_check(args: RunArgs) -> Result<(), Error> {
-    tfs::daily_new_item_check(&args.db_path).await?;
+    tfs::daily_new_item_check(&args.db_path, &args.debug_html).await?;
     Ok(())
 }
 
@@ -69,7 +73,6 @@ fn current_as_csv(args: CsvArgs) -> Result<(), Error> {
             e
         })?;
     } else {
-        
         let stdout = std::io::stdout();
         write_csv(csv::WriterBuilder::new().from_writer(stdout), &db).map_err(|e| {
             log::error!("Failed to write CSV to stdout: {}", e);
@@ -87,7 +90,12 @@ fn write_csv<T: std::io::Write>(mut w: csv::Writer<T>, db: &Structsy) -> Result<
     let end = now.timestamp() as u64;
     let mut tx = db.begin()?;
     let total_items = tx.scan::<Item>()?.count();
-    log::debug!("looking up items between {} and {}. total: {}", now, prev, total_items);
+    log::debug!(
+        "looking up items between {} and {}. total: {}",
+        now,
+        prev,
+        total_items
+    );
     for (_id, item) in db.query::<Item>().in_timestamp_range(start..end) {
         w.serialize(&item).map_err(|e| {
             log::error!("Failed to write item as csv {}: {}", item.name, e);

@@ -63,10 +63,13 @@ impl From<structsy::StructsyError> for Error {
     }
 }
 
-pub async fn daily_new_item_check<P: AsRef<Path>>(db_path: P) -> Result<()> {
+pub async fn daily_new_item_check<P: AsRef<Path>>(
+    db_path: P,
+    debug_path: &Option<PathBuf>,
+) -> Result<()> {
     let start = chrono::Local::now();
     let text = request_html().await?;
-    
+
     let new_values = html_to_items(&text);
     let database = open_db(&db_path)?;
     let end_dt = Utc::now();
@@ -81,7 +84,9 @@ pub async fn daily_new_item_check<P: AsRef<Path>>(db_path: P) -> Result<()> {
                 if !printed_preamble {
                     printed_preamble = true;
                     println!("TFS Report for {}", start);
-                    write_debug_html(&text, db_path.as_ref(), start).map_err(|e| eprintln!("error writing debug html {}", e)).ok();
+                    write_debug_html(&text, &debug_path, start)
+                        .map_err(|e| eprintln!("error writing debug html {}", e))
+                        .ok();
                 }
                 println!(
                     "new item: {}: {} ({})",
@@ -95,7 +100,9 @@ pub async fn daily_new_item_check<P: AsRef<Path>>(db_path: P) -> Result<()> {
             if !printed_preamble {
                 printed_preamble = true;
                 println!("TFS Report for {}", start);
-                write_debug_html(&text, db_path.as_ref(), start).map_err(|e| eprintln!("error writing debug html {}", e)).ok();
+                write_debug_html(&text, &debug_path, start)
+                    .map_err(|e| eprintln!("error writing debug html {}", e))
+                    .ok();
             }
             println!(
                 "new item: {}: {} ({})",
@@ -110,19 +117,20 @@ pub async fn daily_new_item_check<P: AsRef<Path>>(db_path: P) -> Result<()> {
     Ok(())
 }
 
-fn write_debug_html(text: &str, db_path: &Path, start: chrono::DateTime<Local>) -> Result<()> {
-    let should = std::env::var("TFS_WRITE_HTML").unwrap_or_else(|_| String::new());
-    if should == "1" {
-        let file_name = format!("{}.html", start);
-        let dir = db_path
-            .parent()
-            .map(|p| p.to_path_buf())
-            .unwrap_or_else(|| PathBuf::from("~/"));
-        let full_dir = dir.join(".tfs_debug");
-        if !full_dir.exists() {
-            std::fs::create_dir_all(&full_dir)?;
+fn write_debug_html(
+    text: &str,
+    debug_path: &Option<PathBuf>,
+    start: chrono::DateTime<Local>,
+) -> Result<()> {
+    if let Some(dir) = debug_path.as_ref() {
+        println!("Writing html");
+        if !dir.exists() {
+            std::fs::create_dir_all(&dir)?;
         }
-        std::fs::write(full_dir.join(&file_name), &text)?;
+        let file_name = format!("{}.html", start);
+        let full_path = dir.join(&file_name);
+        std::fs::write(&full_path, &text)?;
+        println!("html available at file://{}", full_path.display());
     }
     Ok(())
 }
