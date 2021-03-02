@@ -130,7 +130,7 @@ fn write_debug_html(
         let file_name = format!("{}.html", start);
         let full_path = dir.join(&file_name);
         std::fs::write(&full_path, &text)?;
-        println!("html available at file://{}", full_path.display());
+        println!("html available at 'file://{}'", full_path.display());
     }
     Ok(())
 }
