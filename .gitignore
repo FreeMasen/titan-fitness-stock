@@ -1,2 +1,6 @@
 /target
-.vscode
+/.vscode
+/*.sh
+/.tfs_debug
+/*.data
+/*.db
