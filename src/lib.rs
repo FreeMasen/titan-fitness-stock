@@ -1,12 +1,12 @@
 use std::ops::RangeBounds;
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::HashMap,
     path::{Path, PathBuf},
 };
 use structsy::{Structsy, StructsyTx};
 use structsy_derive::{queries, Persistent, PersistentEmbedded};
 
-use chrono::{DateTime, Duration, Local, Utc};
+use chrono::{Duration, Local, Utc};
 use serde::{Deserialize, Serialize};
 
 static URL: &str = "https://www.titan.fitness/on/demandware.store/Sites-TitanFitness-Site/default/Search-UpdateGrid?cgid=in-stock-items&start=0&viewall=true";
@@ -172,8 +172,8 @@ pub fn html_to_items(text: &str) -> HashMap<String, Item> {
         .select(&top_level_selector)
         .into_iter()
         .enumerate()
-        .filter_map(|(i, e)| {
-            let (json, link) = find_item_parts(e, &json_selector, &link_selector)?;
+        .filter_map(|(i, ele)| {
+            let (json, link) = find_item_parts(ele, &json_selector, &link_selector)?;
             let mut item: Item = serde_json::from_str(&json)
                 .map_err(|e| {
                     eprintln!("Error parsing item {}: {}", i, e);
@@ -212,6 +212,7 @@ pub struct Item {
     pub name: String,
     #[index(mode = "exclusive")]
     pub id: String,
+    #[serde(deserialize_with = "deserialize_null_default")]
     pub price: Price,
     pub category: String,
     pub brand: String,
@@ -223,11 +224,26 @@ pub struct Item {
     pub back_in_stock: bool,
 }
 
+fn deserialize_null_default<'de, D, T>(deserializer: D) -> std::result::Result<T, D::Error>
+where
+    T: std::default::Default + Deserialize<'de>,
+    D: serde::Deserializer<'de>,
+{
+    let opt = Option::deserialize(deserializer)?;
+    Ok(opt.unwrap_or_default())
+}
+
 #[derive(Debug, Deserialize, Serialize, PersistentEmbedded)]
 #[serde(untagged)]
 pub enum Price {
     Single(f32),
     Range(String),
+}
+
+impl std::default::Default for Price {
+    fn default() -> Self {
+        Self::Single(0.0)
+    }
 }
 
 impl std::fmt::Display for Price {
@@ -236,25 +252,5 @@ impl std::fmt::Display for Price {
             Self::Single(v) => write!(f, "{}", v),
             Self::Range(s) => write!(f, "{}", s),
         }
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Default)]
-pub struct Database {
-    pub items: BTreeMap<DateTime<Utc>, HashMap<String, Item>>,
-}
-
-impl Database {
-    pub fn last_look(&self) -> Option<&HashMap<String, Item>> {
-        let (_key, value) = self.items.iter().last()?;
-        Some(value)
-    }
-    pub fn purge_days(&mut self, days: u64) {
-        let end = Utc::today()
-            .and_hms(0, 0, 0)
-            .checked_sub_signed(chrono::Duration::days(days as _))
-            .unwrap();
-        let trimmed = self.items.split_off(&end);
-        self.items = trimmed;
     }
 }
