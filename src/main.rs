@@ -5,10 +5,9 @@ use structsy::{Structsy, StructsyTx};
 use tfs::{Error, Item};
 use titan_fitness_stock as tfs;
 
-use structopt::{clap::AppSettings, StructOpt};
+use clap::Parser;
 
-#[derive(StructOpt, Debug)]
-#[structopt(setting = AppSettings::InferSubcommands)]
+#[derive(Parser, Debug)]
 enum Opt {
     /// Check for new merchandise, storing the item data and timestamp for this check
     Run(RunArgs),
@@ -16,25 +15,25 @@ enum Opt {
     CurrentAsCsv(CsvArgs),
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 struct RunArgs {
-    #[structopt(long = "db", short = "d")]
+    #[arg(long = "db", short)]
     /// The path to a database file. On first run, this will establish
     /// your database so when it is run again, it can compare the current
     /// available stock.
     db_path: PathBuf,
-    #[structopt(long)]
+    #[arg(long)]
     /// The path to a directory you would like time stamped html written into
     /// when new items are found
     debug_html: Option<PathBuf>,
 }
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 struct CsvArgs {
-    #[structopt(long, short)]
+    #[arg(long, short)]
     /// A path to an output file, if not provided csv will be printed
     /// to stdout
     out: Option<String>,
-    #[structopt(long = "db", short = "d")]
+    #[arg(long = "db", short)]
     /// The path to a previously created database file. Execute the `run` command
     /// to create one
     db_path: PathBuf,
@@ -43,7 +42,7 @@ struct CsvArgs {
 #[tokio::main]
 async fn main() {
     pretty_env_logger::try_init().ok();
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
     let r = match opt {
         Opt::Run(args) => daily_check(args).await,
         Opt::CurrentAsCsv(args) => current_as_csv(args),
